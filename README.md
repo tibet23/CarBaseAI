@@ -50,3 +50,55 @@ CardBase AI transforms how professionals capture and manage physical business ca
    ```bash
    git clone https://github.com/your-username/cardbase-ai.git
    cd cardbase-ai
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Configure environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your Gemini API key:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## Production Build
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## Mobile Deployment (Capacitor)
+
+To package CardBase AI as a native iOS or Android app:
+
+```bash
+npm install @capacitor/core @capacitor/cli @capacitor/camera
+npx cap init "CardBase AI" "com.cardbase.app"
+npm run build
+npx cap add ios
+npx cap add android
+npx cap open ios      # Opens Xcode
+npx cap open android  # Opens Android Studio
+```
+
+---
+
+## License
+
+MIT License. See `LICENSE` for details.

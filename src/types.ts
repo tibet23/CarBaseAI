@@ -156,3 +156,19 @@ export interface EmailThreadSummary {
   participants: string[];
   messages: EmailMessage[];
 }
+
+export type SubscriptionPlanType = 'free' | 'pro_monthly' | 'pro_annual';
+export type CreditPackType = 'pack_50' | 'pack_200' | 'pack_1000';
+
+export interface UserBillingState {
+  plan: SubscriptionPlanType;
+  isSubscribed: boolean;
+  subscribedAt?: string;
+  freeCardsLimit: number; // default: 20
+  freeCardsUsed: number;
+  purchasedCredits: number; // Credits from Event Passes
+  totalCardsScanned: number;
+  billingCycleEnd?: string;
+  lastPurchaseDate?: string;
+  lastPurchaseDescription?: string;
+}

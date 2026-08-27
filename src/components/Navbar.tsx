@@ -17,9 +17,12 @@ import {
   Printer,
   Tag,
   Palette,
-  Sparkles
+  Sparkles,
+  Smartphone,
+  Crown,
+  Ticket
 } from 'lucide-react';
-import { ContactCard } from '../types';
+import { ContactCard, UserBillingState } from '../types';
 import { exportToCSV, exportToVCF, printContactSheet } from '../utils/exportUtils';
 
 interface NavbarProps {
@@ -39,6 +42,9 @@ interface NavbarProps {
   onOpenBackup?: () => void;
   onOpenCategoryManager?: () => void;
   onOpenDesignGallery?: () => void;
+  onOpenInstallModal?: () => void;
+  onOpenPricingModal?: () => void;
+  billing?: UserBillingState;
   onAddNewManualCard?: () => void;
   selectedCards?: ContactCard[];
   onExportCSV?: () => void;
@@ -62,6 +68,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBackup,
   onOpenCategoryManager,
   onOpenDesignGallery,
+  onOpenInstallModal,
+  onOpenPricingModal,
+  billing,
   onAddNewManualCard,
   selectedCards = [],
   onExportCSV,
@@ -129,6 +138,53 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Camera className="h-4 w-4 sm:mr-1.5 text-blue-600 dark:text-blue-400 shrink-0" />
               <span className="hidden md:inline">Single Card</span>
             </button>
+
+            {/* Pricing & Hybrid Subscription / Event Pass Hub */}
+            {onOpenPricingModal && (
+              <button
+                id="btn-navbar-pricing"
+                onClick={onOpenPricingModal}
+                className="inline-flex items-center justify-center min-h-[42px] sm:min-h-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-300 bg-gradient-to-r from-amber-100 to-amber-50 dark:from-amber-950/60 dark:to-amber-900/40 border border-amber-300/80 dark:border-amber-700/60 hover:from-amber-200 hover:to-amber-100 dark:hover:from-amber-900/70 active:scale-95 transition-all cursor-pointer shadow-xs"
+                title="View Hybrid Pricing & Subscription Plans"
+              >
+                {billing?.isSubscribed ? (
+                  <>
+                    <Crown className="h-4 w-4 sm:mr-1.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Pro</span>
+                    <span className="hidden lg:inline ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400/30 text-amber-950 dark:text-amber-200">
+                      Unlimited
+                    </span>
+                  </>
+                ) : (billing?.purchasedCredits ?? 0) > 0 ? (
+                  <>
+                    <Ticket className="h-4 w-4 sm:mr-1.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>{billing?.purchasedCredits}</span>
+                    <span className="hidden sm:inline ml-1 text-[11px] font-medium">Credits</span>
+                  </>
+                ) : (
+                  <>
+                    <Crown className="h-4 w-4 sm:mr-1.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Pricing</span>
+                    <span className="hidden sm:inline-block ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+                      {billing ? `${Math.max(0, billing.freeCardsLimit - billing.freeCardsUsed)} left` : '20 Free'}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Mobile App Download Button */}
+            {onOpenInstallModal && (
+              <button
+                id="btn-navbar-install-app"
+                onClick={onOpenInstallModal}
+                className="inline-flex items-center justify-center min-h-[42px] sm:min-h-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                title="Download CardBase on your Mobile Phone"
+              >
+                <Smartphone className="h-4 w-4 sm:mr-1.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">Get App</span>
+              </button>
+            )}
 
             {/* Category Customizer */}
             {onOpenCategoryManager && (

@@ -1,0 +1,41 @@
+{
+  "name": "CardBase AI - Business Card Scanner",
+  "short_name": "CardBase AI",
+  "description": "Scan 1-10 business cards at once with AI OCR and auto-sync with CRM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Batch 10-Card Scan",
+      "short_name": "Batch Scan",
+      "description": "Snap overhead photo of up to 10 cards",
+      "url": "/?action=batch",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Live Camera Scanner",
+      "short_name": "Single Scan",
+      "description": "Align single card in reticle",
+      "url": "/?action=camera",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

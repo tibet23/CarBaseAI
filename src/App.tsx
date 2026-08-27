@@ -18,7 +18,7 @@ import {
   Globe,
   Database
 } from 'lucide-react';
-import { ContactCard, CRMConfig, CRMProvider, CategoryConfig } from './types';
+import { ContactCard, CRMConfig, CRMProvider, CategoryConfig, UserBillingState } from './types';
 import {
   loadCardsFromStorage,
   saveCardsToStorage,
@@ -29,6 +29,10 @@ import {
   loadCategoriesFromStorage,
   saveCategoriesToStorage,
   resetCategoriesToDefault,
+  loadBilling,
+  saveBilling,
+  consumeScanQuota,
+  checkCanScanCards,
   AppSettings
 } from './utils/storage';
 import { exportToCSV, exportToVCF, printCards } from './utils/exportUtils';
@@ -43,6 +47,8 @@ import { CrmSyncModal } from './components/CrmSyncModal';
 import { BackupModal } from './components/BackupModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { DesignGalleryModal } from './components/DesignGalleryModal';
+import { InstallAppModal } from './components/InstallAppModal';
+import { PricingModal } from './components/PricingModal';
 
 export const App: React.FC = () => {
   // App Persistent State
@@ -50,6 +56,7 @@ export const App: React.FC = () => {
   const [categories, setCategories] = useState<CategoryConfig[]>(() => loadCategoriesFromStorage());
   const [crmConfigs, setCrmConfigs] = useState<CRMConfig[]>(() => loadCrmConfigs());
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
+  const [billing, setBilling] = useState<UserBillingState>(() => loadBilling());
 
   // Modal State Triggers
   const [isBatchScannerOpen, setIsBatchScannerOpen] = useState(false);
@@ -58,6 +65,9 @@ export const App: React.FC = () => {
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [isDesignGalleryOpen, setIsDesignGalleryOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [pricingTriggerReason, setPricingTriggerReason] = useState<string | undefined>(undefined);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<ContactCard | null>(null);
   const [selectedCardForQr, setSelectedCardForQr] = useState<ContactCard | null>(null);
 
@@ -67,7 +77,7 @@ export const App: React.FC = () => {
 
   const effectiveOffline = isSystemOffline || forceOfflineMode;
 
-  // Sync cards, categories and settings changes to LocalStorage
+  // Sync cards, categories, billing and settings changes to LocalStorage
   useEffect(() => {
     saveCardsToStorage(cards);
   }, [cards]);
@@ -79,6 +89,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     saveCrmConfigs(crmConfigs);
   }, [crmConfigs]);
+
+  useEffect(() => {
+    saveBilling(billing);
+  }, [billing]);
 
   useEffect(() => {
     saveSettings(settings);
@@ -102,13 +116,38 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Card Mutators
+  // Safe Scanner Launchers with Quota Guard
+  const handleOpenBatchScanner = () => {
+    const check = checkCanScanCards(1, billing);
+    if (!check.allowed) {
+      setPricingTriggerReason(check.reason);
+      setIsPricingOpen(true);
+      return;
+    }
+    setPricingTriggerReason(undefined);
+    setIsBatchScannerOpen(true);
+  };
+
+  const handleOpenSingleScanner = () => {
+    const check = checkCanScanCards(1, billing);
+    if (!check.allowed) {
+      setPricingTriggerReason(check.reason);
+      setIsPricingOpen(true);
+      return;
+    }
+    setPricingTriggerReason(undefined);
+    setIsCameraScannerOpen(true);
+  };
+
+  // Card Mutators with Automatic Scan Quota Consumption
   const handleSaveBatchCards = (newCards: ContactCard[]) => {
     setCards((prev) => [...newCards, ...prev]);
+    setBilling((prev) => consumeScanQuota(newCards.length, prev));
   };
 
   const handleSaveSingleCard = (newCard: ContactCard) => {
     setCards((prev) => [newCard, ...prev]);
+    setBilling((prev) => consumeScanQuota(1, prev));
   };
 
   const handleAddNewManualCard = () => {
@@ -229,15 +268,21 @@ export const App: React.FC = () => {
         cards={cards}
         selectedCards={[]}
         cardCount={totalCards}
-        onOpenBatchScanner={() => setIsBatchScannerOpen(true)}
-        onOpenSingleScanner={() => setIsCameraScannerOpen(true)}
-        onOpenCameraScanner={() => setIsCameraScannerOpen(true)}
+        onOpenBatchScanner={handleOpenBatchScanner}
+        onOpenSingleScanner={handleOpenSingleScanner}
+        onOpenCameraScanner={handleOpenSingleScanner}
         onOpenCrmModal={() => setIsCrmSyncOpen(true)}
         onOpenCrmSync={() => setIsCrmSyncOpen(true)}
         onOpenBackupModal={() => setIsBackupOpen(true)}
         onOpenBackup={() => setIsBackupOpen(true)}
         onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
         onOpenDesignGallery={() => setIsDesignGalleryOpen(true)}
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenPricingModal={() => {
+          setPricingTriggerReason(undefined);
+          setIsPricingOpen(true);
+        }}
+        billing={billing}
         onAddNewManualCard={handleAddNewManualCard}
         darkMode={settings.darkMode}
         onToggleDarkMode={() =>
@@ -272,6 +317,38 @@ export const App: React.FC = () => {
           </div>
         )}
 
+        {/* Quota / Billing Plan Indicator Strip */}
+        {!billing.isSubscribed && (
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-blue-900/10 via-indigo-900/10 to-transparent border border-blue-200 dark:border-blue-900/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <div className="h-8 w-8 rounded-xl bg-blue-600/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  Free Starter Account:
+                </span>{' '}
+                <span className="text-slate-600 dark:text-slate-300">
+                  {billing.freeCardsUsed} / {billing.freeCardsLimit} cards used ({Math.max(0, billing.freeCardsLimit - billing.freeCardsUsed)} remaining)
+                  {billing.purchasedCredits > 0 && ` + ${billing.purchasedCredits} Event Pass credits`}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-end">
+              <button
+                onClick={() => {
+                  setPricingTriggerReason(undefined);
+                  setIsPricingOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-xl font-bold text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xs transition-all cursor-pointer flex items-center space-x-1"
+              >
+                <span>Upgrade / Event Passes</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Executive Metrics & Action Callouts */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
@@ -291,7 +368,7 @@ export const App: React.FC = () => {
 
           {/* Metric 2: 1-Pic-10-Cards Batch Accelerator */}
           <div
-            onClick={() => setIsBatchScannerOpen(true)}
+            onClick={handleOpenBatchScanner}
             className="p-4.5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 flex items-center justify-between cursor-pointer hover:opacity-95 transition-opacity"
           >
             <div>
@@ -353,8 +430,8 @@ export const App: React.FC = () => {
           onPushToCrm={handlePushToCrm}
           onBulkDelete={handleBulkDelete}
           onBulkCrmSync={handleBulkCrmSync}
-          onOpenBatchScanner={() => setIsBatchScannerOpen(true)}
-          onOpenCameraScanner={() => setIsCameraScannerOpen(true)}
+          onOpenBatchScanner={handleOpenBatchScanner}
+          onOpenCameraScanner={handleOpenSingleScanner}
           privacyMode={settings.privacyMode}
         />
 
@@ -432,6 +509,24 @@ export const App: React.FC = () => {
       <DesignGalleryModal
         isOpen={isDesignGalleryOpen}
         onClose={() => setIsDesignGalleryOpen(false)}
+      />
+
+      {/* Mobile App Download & Install Modal */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
+
+      {/* Hybrid Pricing & Event Pass Hub Modal */}
+      <PricingModal
+        isOpen={isPricingOpen}
+        onClose={() => {
+          setIsPricingOpen(false);
+          setPricingTriggerReason(undefined);
+        }}
+        billing={billing}
+        onBillingUpdated={(updated) => setBilling(updated)}
+        triggerReason={pricingTriggerReason}
       />
 
     </div>
